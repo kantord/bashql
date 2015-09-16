@@ -26,6 +26,8 @@ class TestSelect(unittest.TestCase):
             compiler.compile("")
         with self.assertRaisesRegexp(SyntaxError, r".*empty.*string.*"):
             compiler.run("")
+        with self.assertRaisesRegexp(SyntaxError, r".*empty.*string.*"):
+            compiler.run_py("")
 
     def test_select_with_a_single_file_name_is_compilable(self):
         compiler.compile("SELECT * FROM foo.csv")
@@ -42,17 +44,36 @@ class TestSelect(unittest.TestCase):
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         self.assertEqual(len(compiler.run("SELECT * FROM foo.csv")), 0)
 
+    def test_run_single_file_empty_python(self):
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        self.assertEqual(
+            len(list(compiler.run_py("SELECT * FROM foo.csv"))), 0)
+
     def test_run_single_file_non_empty(self):
         self._mock_file("foo.csv", "")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         self.assertEqual(len(compiler.run("SELECT * FROM bar.csv")), 3)
         self.assertIn("a,c", compiler.run("SELECT * FROM bar.csv"))
 
+    def test_run_single_file_non_empty_python(self):
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        self.assertEqual(len(list(
+            compiler.run_py("SELECT * FROM bar.csv"))), 3)
+        self.assertIn(("a", "b", ), compiler.run_py("SELECT * FROM bar.csv"))
+
     def test_run_single_non_existent_file(self):
         self._mock_file("foo.csv", "")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         with self.assertRaisesRegexp(RuntimeError, r".*No such file.*"):
             compiler.run("SELECT * FROM bullshit.csv")
+
+    def test_run_single_non_existent_file_python(self):
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        with self.assertRaisesRegexp(IOError, r".*No such file.*"):
+            list(compiler.run_py("SELECT * FROM bullshit.csv"))
 
     def test_run_multiple_files_one_empty(self):
         self._mock_file("foo.csv", "")
@@ -61,6 +82,14 @@ class TestSelect(unittest.TestCase):
         self.assertEqual(len(results), 3)
         self.assertIn("a,b", results)
         self.assertIn("b,d", results)
+
+    def test_run_multiple_files_one_empty_python(self):
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        results = list(compiler.run_py("SELECT * FROM bar.csv,foo.csv"))
+        self.assertEqual(len(results), 3)
+        self.assertIn(("a", "b", ), results)
+        self.assertIn(("b", "d", ), results)
 
     def test_run_multiple_files(self):
         self._mock_file("foo.csv", "1,2\n")
@@ -71,9 +100,23 @@ class TestSelect(unittest.TestCase):
         self.assertIn("a,b", results)
         self.assertIn("b,d", results)
 
+    def test_run_multiple_files_python(self):
+        self._mock_file("foo.csv", "1,2\n")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        results = list(compiler.run_py("SELECT * FROM bar.csv,foo.csv"))
+        self.assertEqual(len(results), 4)
+        self.assertIn(("1", "2", ), results)
+        self.assertIn(("a", "b", ), results)
+        self.assertIn(("b", "d", ), results)
+
     def test_select_distinct_single_file(self):
         self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
         results = compiler.run("SELECT DISTINCT * FROM bar.csv")
+        self.assertEqual(len(results), 3)
+
+    def test_select_distinct_single_file_python(self):
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+        results = list(compiler.run_py("SELECT DISTINCT * FROM bar.csv"))
         self.assertEqual(len(results), 3)
 
     def test_select_multiple_files_distinct(self):
@@ -82,4 +125,12 @@ class TestSelect(unittest.TestCase):
         self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
         results = compiler.run(
             "SELECT DISTINCT * FROM bar.csv,foo.csv,baz.csv")
+        self.assertEqual(len(results), 4)
+
+    def test_select_multiple_files_distinct_python(self):
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+        self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
+        self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
+        results = list(compiler.run_py(
+            "SELECT DISTINCT * FROM bar.csv,foo.csv,baz.csv"))
         self.assertEqual(len(results), 4)

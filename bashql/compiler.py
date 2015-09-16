@@ -16,3 +16,10 @@ def run(code):
     except subprocess.CalledProcessError as e:
         raise RuntimeError(e.output)
     return result[:-1]
+
+
+def run_py(code):
+    if code == "":
+        raise SyntaxError("Expected a query. Got empty string.")
+    else:
+        return grammar.query.parseString(code)[0].run_py()
