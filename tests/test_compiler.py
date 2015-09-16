@@ -78,7 +78,7 @@ class TestSelect(unittest.TestCase):
     def test_run_multiple_files_one_empty(self):
         self._mock_file("foo.csv", "")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = compiler.run("SELECT * FROM bar.csv,foo.csv")
+        results = compiler.run("SELECT * FROM bar.csv UNION foo.csv")
         self.assertEqual(len(results), 3)
         self.assertIn("a,b", results)
         self.assertIn("b,d", results)
@@ -86,7 +86,7 @@ class TestSelect(unittest.TestCase):
     def test_run_multiple_files_one_empty_python(self):
         self._mock_file("foo.csv", "")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = list(compiler.run_py("SELECT * FROM bar.csv,foo.csv"))
+        results = list(compiler.run_py("SELECT * FROM bar.csv UNION foo.csv"))
         self.assertEqual(len(results), 3)
         self.assertIn(("a", "b", ), results)
         self.assertIn(("b", "d", ), results)
@@ -94,7 +94,7 @@ class TestSelect(unittest.TestCase):
     def test_run_multiple_files(self):
         self._mock_file("foo.csv", "1,2\n")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = compiler.run("SELECT * FROM bar.csv,foo.csv")
+        results = compiler.run("SELECT * FROM bar.csv UNION foo.csv")
         self.assertEqual(len(results), 4)
         self.assertIn("1,2", results)
         self.assertIn("a,b", results)
@@ -103,7 +103,7 @@ class TestSelect(unittest.TestCase):
     def test_run_multiple_files_python(self):
         self._mock_file("foo.csv", "1,2\n")
         self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = list(compiler.run_py("SELECT * FROM bar.csv,foo.csv"))
+        results = list(compiler.run_py("SELECT * FROM bar.csv UNION foo.csv"))
         self.assertEqual(len(results), 4)
         self.assertIn(("1", "2", ), results)
         self.assertIn(("a", "b", ), results)
@@ -124,7 +124,7 @@ class TestSelect(unittest.TestCase):
         self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
         self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
         results = compiler.run(
-            "SELECT DISTINCT * FROM bar.csv,foo.csv,baz.csv")
+            "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv")
         self.assertEqual(len(results), 4)
 
     def test_select_multiple_files_distinct_python(self):
@@ -132,5 +132,5 @@ class TestSelect(unittest.TestCase):
         self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
         self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
         results = list(compiler.run_py(
-            "SELECT DISTINCT * FROM bar.csv,foo.csv,baz.csv"))
+            "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv"))
         self.assertEqual(len(results), 4)
