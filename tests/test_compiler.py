@@ -17,7 +17,7 @@ class TestSelect(unittest.TestCase):
             os.remove(filename)
         os.rmdir(self.test_dirname)
 
-    def _create_file(self, filename, content):
+    def _mock_file(self, filename, content):
         with open(filename, "w") as output_file:
             output_file.write(content)
             self._files.add(filename)
@@ -39,18 +39,48 @@ class TestSelect(unittest.TestCase):
         self.assertIn("bar.csv", compiler.compile("SELECT * FROM bar.csv"))
 
     def test_run_single_file_empty(self):
-        self._create_file("foo.csv", "")
-        self._create_file("bar.csv", "a,b\na,c\nb,d")
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         self.assertEqual(len(compiler.run("SELECT * FROM foo.csv")), 0)
 
     def test_run_single_file_non_empty(self):
-        self._create_file("foo.csv", "")
-        self._create_file("bar.csv", "a,b\na,c\nb,d")
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         self.assertEqual(len(compiler.run("SELECT * FROM bar.csv")), 3)
         self.assertIn("a,c", compiler.run("SELECT * FROM bar.csv"))
 
     def test_run_single_non_existent_file(self):
-        self._create_file("foo.csv", "")
-        self._create_file("bar.csv", "a,b\na,c\nb,d")
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
         with self.assertRaisesRegexp(RuntimeError, r".*No such file.*"):
             compiler.run("SELECT * FROM bullshit.csv")
+
+    def test_run_multiple_files_one_empty(self):
+        self._mock_file("foo.csv", "")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        results = compiler.run("SELECT * FROM bar.csv,foo.csv")
+        self.assertEqual(len(results), 3)
+        self.assertIn("a,b", results)
+        self.assertIn("b,d", results)
+
+    def test_run_multiple_files(self):
+        self._mock_file("foo.csv", "1,2\n")
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+        results = compiler.run("SELECT * FROM bar.csv,foo.csv")
+        self.assertEqual(len(results), 4)
+        self.assertIn("1,2", results)
+        self.assertIn("a,b", results)
+        self.assertIn("b,d", results)
+
+    def test_select_distinct_single_file(self):
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+        results = compiler.run("SELECT DISTINCT * FROM bar.csv")
+        self.assertEqual(len(results), 3)
+
+    def test_select_multiple_files_distinct(self):
+        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+        self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
+        self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
+        results = compiler.run(
+            "SELECT DISTINCT * FROM bar.csv,foo.csv,baz.csv")
+        self.assertEqual(len(results), 4)
