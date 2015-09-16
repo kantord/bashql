@@ -1,11 +1,13 @@
 import subprocess
+import grammar
 
 
 def compile(code):
     if code == "":
         raise SyntaxError("Expected a query. Got empty string.")
     else:
-        return "cat " + code.split("* ")[1].split("FROM")[1]
+        filename = grammar.query.parseString(code)[-1]
+        return "cat " + filename
 
 
 def run(code):
