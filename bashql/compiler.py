@@ -6,11 +6,7 @@ def compile(code):
     if code == "":
         raise SyntaxError("Expected a query. Got empty string.")
     else:
-        filenames = grammar.query.parseString(code)[-1]
-        command = "cat " + " ".join(filenames)
-        if "DISTINCT" == grammar.query.parseString(code)[1]:
-            command += " | sort | uniq"
-        return command
+        return grammar.query.parseString(code)[0].compile_to_bash()
 
 
 def run(code):

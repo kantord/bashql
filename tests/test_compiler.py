@@ -1,7 +1,6 @@
 import os
 import random
 import unittest
-import subprocess
 from bashql import compiler
 
 

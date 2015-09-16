@@ -1,4 +1,5 @@
 from pyparsing import Keyword, Regex, StringEnd, ZeroOrMore
+import tree
 
 
 kw_SELECT = Keyword("SELECT")
@@ -12,4 +13,7 @@ query_select_distinct = kw_SELECT + kw_DISTINCT + kw_STAR + kw_FROM + file_list
 query = (query_select + StringEnd()) | (query_select_distinct + StringEnd())
 
 
-file_list.setParseAction(lambda a, b, toks: tuple(f for i, f in enumerate(toks) if i % 2 == 0))  # noqa
+file_list.setParseAction(tree.FileList)
+query_select.setParseAction(tree.SimpleSelect)
+query_select_distinct.setParseAction(tree.SimpleSelectDistinct)
+query.setParseAction(tree.Query)
