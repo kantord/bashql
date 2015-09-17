@@ -31,6 +31,14 @@ class TestSelect(unittest.TestCase):
 
     def test_select_with_a_single_file_name_is_compilable(self):
         compiler.compile("SELECT * FROM foo.csv")
+        compiler.compile("SELECT * FROM Foo.csv")
+        compiler.compile("SELECT * FROM oF.csv")
+        compiler.compile("SELECT * FROM oF.txt")
+        compiler.compile("SELECT * FROM oF.tXt")
+        compiler.compile("SELECT * FROM without_dot")
+        compiler.compile("SELECT * FROM .hidden_file")
+        compiler.compile("SELECT * FROM __")
+        compiler.compile("SELECT * FROM abc2312.342adf")
 
     def test_select_with_a_single_file_name_returns_sane_script(self):
         self.assertIn("cat ", compiler.compile("SELECT * FROM foo.csv"))
