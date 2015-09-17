@@ -9,6 +9,7 @@ class TestSelect(unittest.TestCase):
         self.test_dirname = "/tmp/test_%d" % random.randrange(1, 10 ** 100)
         self._files = set()
         os.mkdir(self.test_dirname)
+        self._original_pwd = os.getcwd()
         os.chdir(self.test_dirname)
         self._backends = ["bash", "python"]
 
@@ -16,6 +17,7 @@ class TestSelect(unittest.TestCase):
         for filename in self._files:
             os.remove(filename)
         os.rmdir(self.test_dirname)
+        os.chdir(self._original_pwd)
 
     def _mock_file(self, filename, content):
         with open(filename, "w") as output_file:
