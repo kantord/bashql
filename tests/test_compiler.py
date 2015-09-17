@@ -110,3 +110,58 @@ class TestSelect(unittest.TestCase):
                 backend,
                 "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv"))
             self.assertEqual(len(results), 4)
+
+    def test_select_first_column(self):
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+            self._mock_file("baz.csv", "a,b\na,1\n1,d\na,c\n")
+            self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
+            results = set(compiler.run(
+                backend,
+                "SELECT DISTINCT #1 FROM bar.csv UNION foo.csv UNION baz.csv"))
+            self.assertSetEqual(results, {("a", ), ("b", ), ("1", ), })
+
+            results = list(compiler.run(
+                backend, "SELECT #1 FROM bar.csv"))
+            self.assertEqual(results, [("a", ), ("a", ), ("b", ), ("a", )])
+
+    def test_select_no_first_column(self):
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b,3\na,c,3\nb,d,3\na,c,3\n")
+            self._mock_file("baz.csv", "a,b,3\na,1,3\n1,d,3\na,c,3\n")
+            self._mock_file("foo.csv", "a,b,3\na,c,3\nb,d,3\na,c,3\n")
+            results = set(compiler.run(
+                backend,
+                "SELECT DISTINCT #2,#3 FROM bar.csv UNION foo.csv UNION baz.csv"))  # noqa
+            self.assertSetEqual(
+                results, {
+                    ("c", "3", ), ("b", "3", ), ("1", "3", ), ("d", "3",),
+                }
+            )
+
+            results = list(compiler.run(
+                backend, "SELECT #2,#3 FROM bar.csv"))
+            self.assertEqual(
+                results, [("b", "3"), ("c", "3"), ("d", "3"), ("c", "3")])
+
+    def test_projection_reorder(self):
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b,3\na,c,3\nb,d,3\na,c,3\n")
+
+            results = list(compiler.run(
+                backend, "SELECT #3,#2,#1 FROM bar.csv"))
+
+            self.assertEqual(
+                results,
+                [("3", "b", "a", ), ("3", "c", "a", ), ("3", "d", "b", ), ("3", "c", "a", ), ])  # noqa
+
+    def test_projection_duplicate(self):
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b,3\na,c,3\nb,d,3\na,c,3\n")
+
+            results = list(compiler.run(
+                backend, "SELECT #3,#2,#3 FROM bar.csv"))
+
+            self.assertEqual(
+                results,
+                [("3", "b", "3", ), ("3", "c", "3", ), ("3", "d", "3", ), ("3", "c", "3", ), ])  # noqa
