@@ -10,6 +10,7 @@ class TestSelect(unittest.TestCase):
         self._files = set()
         os.mkdir(self.test_dirname)
         os.chdir(self.test_dirname)
+        self._backends = ["bash", "python"]
 
     def tearDown(self):
         for filename in self._files:
@@ -25,9 +26,9 @@ class TestSelect(unittest.TestCase):
         with self.assertRaisesRegexp(SyntaxError, r".*empty.*string.*"):
             compiler.compile("")
         with self.assertRaisesRegexp(SyntaxError, r".*empty.*string.*"):
-            compiler.run("")
+            compiler.run("bash", "")
         with self.assertRaisesRegexp(SyntaxError, r".*empty.*string.*"):
-            compiler.run_py("")
+            compiler.run("python", "")
 
     def test_select_with_a_single_file_name_is_compilable(self):
         compiler.compile("SELECT * FROM foo.csv")
@@ -48,97 +49,62 @@ class TestSelect(unittest.TestCase):
         self.assertIn("bar.csv", compiler.compile("SELECT * FROM bar.csv"))
 
     def test_run_single_file_empty(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        self.assertEqual(len(compiler.run("SELECT * FROM foo.csv")), 0)
-
-    def test_run_single_file_empty_python(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        self.assertEqual(
-            len(list(compiler.run_py("SELECT * FROM foo.csv"))), 0)
+        for backend in self._backends:
+            self._mock_file("foo.csv", "")
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+            self.assertEqual(
+                len(list(compiler.run(backend, "SELECT * FROM foo.csv"))), 0)
 
     def test_run_single_file_non_empty(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        self.assertEqual(len(compiler.run("SELECT * FROM bar.csv")), 3)
-        self.assertIn("a,c", compiler.run("SELECT * FROM bar.csv"))
-
-    def test_run_single_file_non_empty_python(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        self.assertEqual(len(list(
-            compiler.run_py("SELECT * FROM bar.csv"))), 3)
-        self.assertIn(("a", "b", ), compiler.run_py("SELECT * FROM bar.csv"))
+        for backend in self._backends:
+            self._mock_file("foo.csv", "")
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+            self.assertEqual(len(list(
+                compiler.run(backend, "SELECT * FROM bar.csv"))), 3)
+            self.assertIn(("a", "b", ), compiler.run(
+                backend, "SELECT * FROM bar.csv"))
 
     def test_run_single_non_existent_file(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        with self.assertRaisesRegexp(RuntimeError, r".*No such file.*"):
-            compiler.run("SELECT * FROM bullshit.csv")
-
-    def test_run_single_non_existent_file_python(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        with self.assertRaisesRegexp(IOError, r".*No such file.*"):
-            list(compiler.run_py("SELECT * FROM bullshit.csv"))
+        for backend in self._backends:
+            self._mock_file("foo.csv", "")
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+            with self.assertRaisesRegexp(Exception, r".*No such file.*"):
+                list(compiler.run(backend, "SELECT * FROM bullshit.csv"))
 
     def test_run_multiple_files_one_empty(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = compiler.run("SELECT * FROM bar.csv UNION foo.csv")
-        self.assertEqual(len(results), 3)
-        self.assertIn("a,b", results)
-        self.assertIn("b,d", results)
-
-    def test_run_multiple_files_one_empty_python(self):
-        self._mock_file("foo.csv", "")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = list(compiler.run_py("SELECT * FROM bar.csv UNION foo.csv"))
-        self.assertEqual(len(results), 3)
-        self.assertIn(("a", "b", ), results)
-        self.assertIn(("b", "d", ), results)
+        for backend in self._backends:
+            self._mock_file("foo.csv", "")
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+            results = list(compiler.run(
+                backend, "SELECT * FROM bar.csv UNION foo.csv"))
+            self.assertEqual(len(results), 3)
+            self.assertIn(("a", "b", ), results)
+            self.assertIn(("b", "d", ), results)
 
     def test_run_multiple_files(self):
-        self._mock_file("foo.csv", "1,2\n")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = compiler.run("SELECT * FROM bar.csv UNION foo.csv")
-        self.assertEqual(len(results), 4)
-        self.assertIn("1,2", results)
-        self.assertIn("a,b", results)
-        self.assertIn("b,d", results)
-
-    def test_run_multiple_files_python(self):
-        self._mock_file("foo.csv", "1,2\n")
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
-        results = list(compiler.run_py("SELECT * FROM bar.csv UNION foo.csv"))
-        self.assertEqual(len(results), 4)
-        self.assertIn(("1", "2", ), results)
-        self.assertIn(("a", "b", ), results)
-        self.assertIn(("b", "d", ), results)
+        for backend in self._backends:
+            self._mock_file("foo.csv", "1,2\n")
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\n")
+            results = list(compiler.run(
+                backend, "SELECT * FROM bar.csv UNION foo.csv"))
+            self.assertEqual(len(results), 4)
+            self.assertIn(("1", "2", ), results)
+            self.assertIn(("a", "b", ), results)
+            self.assertIn(("b", "d", ), results)
 
     def test_select_distinct_single_file(self):
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
-        results = compiler.run("SELECT DISTINCT * FROM bar.csv")
-        self.assertEqual(len(results), 3)
-
-    def test_select_distinct_single_file_python(self):
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
-        results = list(compiler.run_py("SELECT DISTINCT * FROM bar.csv"))
-        self.assertEqual(len(results), 3)
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+            results = list(compiler.run(
+                backend, "SELECT DISTINCT * FROM bar.csv"))
+            self.assertEqual(len(results), 3)
 
     def test_select_multiple_files_distinct(self):
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
-        self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
-        self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
-        results = compiler.run(
-            "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv")
-        self.assertEqual(len(results), 4)
-
-    def test_select_multiple_files_distinct_python(self):
-        self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
-        self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
-        self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
-        results = list(compiler.run_py(
-            "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv"))
-        self.assertEqual(len(results), 4)
+        for backend in self._backends:
+            self._mock_file("bar.csv", "a,b\na,c\nb,d\na,c\n")
+            self._mock_file("baz.csv", "a,b\na,1\nb,d\na,c\n")
+            self._mock_file("foo.csv", "a,b\na,c\nb,d\na,c\n")
+            results = list(compiler.run(
+                backend,
+                "SELECT DISTINCT * FROM bar.csv UNION foo.csv UNION baz.csv"))
+            self.assertEqual(len(results), 4)
