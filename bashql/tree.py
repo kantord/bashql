@@ -85,3 +85,19 @@ class ProjectionColumns(BaseParseAction):
         return tuple(
             int(col[1:]) for i, col in enumerate(self._tokens) if i % 2 == 0
         )
+
+
+class OrderedQuery(BaseParseAction):
+    def __init__(self, a, b, tokens):
+        self._tokens = tokens
+
+    def get_column(self):
+        return int(self._tokens[-1][1:])
+
+    def compile_to_bash(self):
+        return self._tokens[0].compile_to_bash() + " | sort -t, -k %d" % (
+            self.get_column())
+
+    def run_py(self):
+        return sorted(
+            self._tokens[0].run_py(), key=lambda r: r[self.get_column() - 1])

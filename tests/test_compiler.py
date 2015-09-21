@@ -171,3 +171,20 @@ class TestSelect(unittest.TestCase):
                 backend, "SELECT #1,#1 FROM baz.csv"))
 
             self.assertEqual(results, [("a", "a", ), ("b", "b", )])
+
+    def test_order_by_single_column(self):
+        for backend in self._backends:
+            print(backend)
+            self._mock_file("bar.csv", "a,a\nx,c\nb,b\nc,d\n")
+
+            results = list(compiler.run(
+                backend, "SELECT * FROM bar.csv ORDER BY #2"))
+            self.assertEquals(results, [
+                ("a", "a", ), ("b", "b", ), ("x", "c", ), ("c", "d", ),
+            ])
+
+            results = list(compiler.run(
+                backend, "SELECT * FROM bar.csv ORDER BY #1"))
+            self.assertEquals(results, [
+                ("a", "a", ), ("b", "b", ), ("c", "d", ), ("x", "c", ),
+            ])

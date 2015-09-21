@@ -7,6 +7,7 @@ kw_DISTINCT = Keyword("DISTINCT")
 kw_FROM = Keyword("FROM")
 kw_STAR = Keyword("*")
 kw_UNION = Keyword("UNION")
+kw_ORDER_BY = Keyword("ORDER") + Keyword("BY")
 re_filename = Regex("[A-z\.0-9]+")
 re_col_id = Regex("#[1-9][0-9]*")
 file_list = ZeroOrMore(re_filename + kw_UNION) + re_filename
@@ -15,7 +16,9 @@ projection_columns = ZeroOrMore(re_col_id + ",") + re_col_id
 projection = projection_star | projection_columns  # noqa
 query_select = kw_SELECT + projection + kw_FROM + file_list
 query_select_distinct = kw_SELECT + kw_DISTINCT + projection + kw_FROM + file_list  # noqa
-query = (query_select + StringEnd()) | (query_select_distinct + StringEnd())
+unordered_query = query_select | query_select_distinct
+ordered_query = unordered_query + kw_ORDER_BY + re_col_id
+query = (unordered_query + StringEnd()) | (ordered_query + StringEnd())
 
 
 file_list.setParseAction(tree.FileList)
@@ -25,3 +28,5 @@ query.setParseAction(tree.Query)
 projection_star.setParseAction(tree.ProjectionStar)
 projection_columns.setParseAction(tree.ProjectionColumns)
 projection.setParseAction(tree.passthrough)
+unordered_query.setParseAction(tree.passthrough)
+ordered_query.setParseAction(tree.OrderedQuery)
