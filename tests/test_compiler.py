@@ -158,6 +158,7 @@ class TestSelect(unittest.TestCase):
     def test_projection_duplicate(self):
         for backend in self._backends:
             self._mock_file("bar.csv", "a,b,3\na,c,3\nb,d,3\na,c,3\n")
+            self._mock_file("baz.csv", "a,b\nb,c\n")
 
             results = list(compiler.run(
                 backend, "SELECT #3,#2,#3 FROM bar.csv"))
@@ -165,3 +166,8 @@ class TestSelect(unittest.TestCase):
             self.assertEqual(
                 results,
                 [("3", "b", "3", ), ("3", "c", "3", ), ("3", "d", "3", ), ("3", "c", "3", ), ])  # noqa
+
+            results = list(compiler.run(
+                backend, "SELECT #1,#1 FROM baz.csv"))
+
+            self.assertEqual(results, [("a", "a", ), ("b", "b", )])

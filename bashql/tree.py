@@ -64,8 +64,14 @@ class ProjectionStar(BaseParseAction):
 
 
 class ProjectionColumns(BaseParseAction):
+    def _has_duplicates(self):
+        return len(set(self.get_columns())) != len(list(self.get_columns()))
+
     def compile_to_bash(self):
-        if list(self.get_columns()) == list(sorted(self.get_columns())):
+        if (
+            list(self.get_columns()) == list(sorted(self.get_columns())) and
+            not self._has_duplicates()
+        ):
             column_ids = ",".join(map(str, self.get_columns()))
             return " | cut -d ',' -f " + column_ids
         else:
