@@ -188,3 +188,11 @@ class TestSelect(unittest.TestCase):
             self.assertEquals(results, [
                 ("a", "a", ), ("b", "b", ), ("c", "d", ), ("x", "c", ),
             ])
+
+    def test_numerically_order_by_single_column(self):
+        for backend in self._backends:
+            self._mock_file("num.csv", "21\n11\n1\n2\n")
+
+            results = list(compiler.run(
+                backend, "SELECT * FROM num.csv NUMERICALLY ORDER BY #1"))
+            self.assertEquals(results, [("1", ), ("2", ), ("11", ), ("21", )])

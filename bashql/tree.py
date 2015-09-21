@@ -87,17 +87,30 @@ class ProjectionColumns(BaseParseAction):
         )
 
 
-class OrderedQuery(BaseParseAction):
-    def __init__(self, a, b, tokens):
-        self._tokens = tokens
+def OrderedQuery(numerical):
+    class OrderedQueryClass(BaseParseAction):
+        def __init__(self, a, b, tokens):
+            self._tokens = tokens
 
-    def get_column(self):
-        return int(self._tokens[-1][1:])
+        def get_column(self):
+            return int(self._tokens[-1][1:])
 
-    def compile_to_bash(self):
-        return self._tokens[0].compile_to_bash() + " | sort -t, -k %d" % (
-            self.get_column())
+        def compile_to_bash(self):
+            if numerical:
+                suffix = " | sort -n -t, -k %d" % (self.get_column())
+            else:
+                suffix = " | sort -t, -k %d" % (self.get_column())
 
-    def run_py(self):
-        return sorted(
-            self._tokens[0].run_py(), key=lambda r: r[self.get_column() - 1])
+            return self._tokens[0].compile_to_bash() + suffix
+
+        def run_py(self):
+            if numerical:
+                return sorted(
+                    self._tokens[0].run_py(),
+                    key=lambda r: int(r[self.get_column() - 1]))
+            else:
+                return sorted(
+                    self._tokens[0].run_py(),
+                    key=lambda r: r[self.get_column() - 1])
+
+    return OrderedQueryClass
