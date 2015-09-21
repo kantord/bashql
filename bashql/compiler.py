@@ -1,5 +1,6 @@
 import subprocess
-import grammar
+import six
+from . import grammar
 
 
 def compile(code):
@@ -12,10 +13,12 @@ def compile(code):
 def run_bash(code):
     try:
         result = subprocess.check_output(
-            compile(code), shell=True, stderr=subprocess.STDOUT).split("\n")
+            compile(code), shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         raise RuntimeError(e.output)
-    return map(lambda r: tuple(r.split(",")), result[:-1])
+    if six.PY3:
+        result = result.decode("utf-8")
+    return map(lambda r: tuple(r.split(",")), result.split("\n")[:-1])
 
 
 def run_py(code):
