@@ -1,5 +1,5 @@
 from pyparsing import Keyword, Regex, StringEnd, ZeroOrMore
-import tree
+from . import tree
 
 
 kw_SELECT = Keyword("SELECT")
